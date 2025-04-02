@@ -1,5 +1,3 @@
-# ~/.config/fish/functions/gcma.fish
-
 function gcma --description "Generate Conventional Commit message using llm for Git or Jujutsu (jj)"
     # --- Configuration ---
     set -l default_model "gemini-2.5-pro-exp-03-25" # <--- CHANGE THIS
@@ -53,11 +51,18 @@ function gcma --description "Generate Conventional Commit message using llm for 
     # --- Detect Repository Tools ---
     set -l has_jj false
     set -l has_git false
-    if command -q jj; and jj root > /dev/null 2>&1
-        set has_jj true
-    end
+    set -l is_detached_head false
+
+    # Check for Git repo and detached HEAD state
     if command -q git; and git rev-parse --is-inside-work-tree > /dev/null 2>&1
         set has_git true
+        # Check if HEAD is detached
+        git symbolic-ref -q HEAD > /dev/null 2>&1; or set is_detached_head true
+    end
+
+    # Check for jj repo
+    if command -q jj; and jj root > /dev/null 2>&1
+        set has_jj true
     end
 
     # --- Determine Effective Tool ---
@@ -79,11 +84,14 @@ function gcma --description "Generate Conventional Commit message using llm for 
             end
         end
     else
-        # Default logic: Prioritize jj if available
-        if $has_jj
+        # Default logic: Prioritize jj if available and we're in detached HEAD, otherwise use git
+        if $has_jj; and $is_detached_head
             set repo_type "jj"
         else if $has_git
             set repo_type "git"
+        else if $has_jj
+            # Fall back to jj if no git available
+            set repo_type "jj"
         end
     end
 
@@ -257,6 +265,3 @@ function gcma --description "Generate Conventional Commit message using llm for 
 
     return $final_status
 end
-
-# Optional: Save the function
-# funcsave gcma
