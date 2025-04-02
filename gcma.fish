@@ -188,10 +188,8 @@ function gcma --description "Generate Conventional Commit message using llm for 
     # Pipe the captured diff_output directly to the llm command
     # Use 'echo -n' to avoid adding an extra newline
     # Call llm directly with arguments instead of using the $llm_cmd_args list variable
-    set generated_message (echo -n -- "$diff_output" | llm --system "$system_prompt" --schema "subject,body" --model "$model_to_use")
+    set generated_message (echo "$diff_output" | llm --system "$system_prompt" --schema "subject,body" --model "$model_to_use" | jq -r '"\(.subject)\n\n\(.body)"' | string collect)
     echo "✨ llm processing complete." >&2
-    echo "📝 Generated message:" >&2
-    echo "---" >&2; echo "$generated_message" >&2; echo "---" >&2
     set llm_status $status
 
     # Check llm command status
